@@ -1,4 +1,4 @@
-using ECommerceApi.Application.Interfaces.Repositories;
+ï»¿using ECommerceApi.Application.Interfaces.Repositories;
 using ECommerceApi.Application.Interfaces.Services;
 using ECommerceApi.Application.Services;
 using ECommerceApi.Infrastructure.Data;
@@ -27,11 +27,11 @@ builder.Services.AddScoped(typeof(ICategoryService), typeof(CategoryService));
 
 builder.Services.AddControllers();
 
-builder.Services.AddFluentValidationAutoValidation(); // Otomatik kontrolü açar
-builder.Services.AddFluentValidationClientsideAdapters(); // İstemci tarafı desteği (opsiyonel)
+builder.Services.AddFluentValidationAutoValidation(); // Otomatik kontrolÃ¼ aÃ§ar
+builder.Services.AddFluentValidationClientsideAdapters(); // Ä°stemci tarafÄ± desteÄŸi (opsiyonel)
 builder.Services.AddValidatorsFromAssemblyContaining<ECommerceApi.Application.Services.AuthService>();
-// NOT: Yukarıdaki satırda 'AuthService' yerine Application katmanındaki herhangi bir sınıfı verebilirsin.
-// Bu komut, o katmandaki tüm Validator sınıflarını (UserLoginDtoValidator vs.) bulur ve kaydeder.
+// NOT: YukarÄ±daki satÄ±rda 'AuthService' yerine Application katmanÄ±ndaki herhangi bir sÄ±nÄ±fÄ± verebilirsiniz.
+// Bu komut, o katmandaki tÃ¼m Validator sÄ±nÄ±flarÄ±nÄ± (UserLoginDtoValidator vs.) bulur ve kaydeder.
 
 builder.Services.AddOpenApi();
 
