@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ECommerceApi.API.Controllers;
 
-[Route("api/[controller]")] 
+[Route("api/[controller]")]
 [ApiController]
 public class ProductsController : ControllerBase
 {
@@ -26,11 +26,19 @@ public class ProductsController : ControllerBase
         return Ok(products);
     }
 
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetById(Guid id)
+    {
+        var product = await _productService.GetProductByIdAsync(id);
+        return Ok(product);
+    }
+
     [HttpPost]
     public async Task<IActionResult> Add([FromBody] CreateProductDto productDto)
     {
-        await _productService.CreateProductAsync(productDto);
-        return Ok("Product created successfully");
+        var createdProductId = await _productService.CreateProductAsync(productDto);
+
+        return CreatedAtAction(nameof(GetById), new {id = createdProductId}, productDto);
     }
 
     [HttpDelete("{id}")]
@@ -43,6 +51,8 @@ public class ProductsController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] UpdateProductDto updateDto)
     {
+        if (id != updateDto.Id) return BadRequest("URL ID and Body ID mismatch!");
+
         await _productService.UpdateProductAsync(id, updateDto);
         return Ok("Product updated successfully");
     }

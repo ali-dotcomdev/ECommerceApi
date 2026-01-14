@@ -19,12 +19,21 @@ public class ProductService : IProductService
         _repository = repository;
     }
 
-    public async Task CreateProductAsync(CreateProductDto productDto)
+    public async Task<ProductResponseDto> GetProductByIdAsync(Guid id)
+    {
+        var product = await _repository.GetByIdAsync(id);
+        
+        return product.ToProductResponseEntity();
+    }
+
+    public async Task<ProductResponseDto> CreateProductAsync(CreateProductDto productDto)
     {
         if (productDto.Price < 0) throw new Exception("Fiyat negatif olamaz");
         var product = productDto.ToProductEntity();
 
         await _repository.AddAsync(product);
+
+        return product.ToProductResponseEntity();
     }
     
     public async Task DeleteProductAsync(Guid id)
