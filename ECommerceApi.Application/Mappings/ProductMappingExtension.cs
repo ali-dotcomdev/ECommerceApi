@@ -30,11 +30,13 @@ public static class ProductMappingExtension
     {
         return new ProductResponseDto 
         {
-            CategoryId = product.Id,
-            CategoryName = product.Category?.Name,
+            Id = product.Id,
             Name = product.Name,
             Price = product.Price,
-            Stock = product.Stock
+            Stock = product.Stock,
+
+            CategoryId = product.CategoryId,
+            CategoryName = product.Category?.Name
         };
     }
 }
