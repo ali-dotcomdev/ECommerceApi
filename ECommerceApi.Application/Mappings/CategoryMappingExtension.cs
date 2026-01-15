@@ -16,6 +16,11 @@ public static class CategoryMappingExtension
         };
     }
 
+    public static void ToUpdateCategory(this Category category, UpdateCategoryDto updateCategory)
+    {
+        category.Name = updateCategory.Name;
+    }
+
     public static CategoryResponseDto ToCategoryResponseEntity(this Category category)
     {
         return new CategoryResponseDto
