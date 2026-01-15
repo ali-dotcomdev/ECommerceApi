@@ -31,7 +31,7 @@ public class CategoryService : ICategoryService
         return category.ToCategoryResponseEntity();
     }
 
-    public async Task<PagedResponse<List<CategoryResponseDto>>> GetAllCategoryAsync(PaginationFilter filter)
+    public async Task<PagedResponse<List<CategoryResponseDto>>> GetAllCategoriesAsync(PaginationFilter filter)
     {
         var allCategories = await _repository.GetAllAsync();
 
@@ -47,5 +47,21 @@ public class CategoryService : ICategoryService
         var totalRecords = categoryDtos.Count;
 
         return new PagedResponse<List<CategoryResponseDto>>(pagedData, filter.PageNumber, filter.PageSize, totalRecords);
+    }
+
+    public async Task DeleteCategoryAsync(Guid id)
+    {
+        var category = await _repository.GetByIdAsync(id);
+        if (category == null) throw new Exception("Silinecek kategori bulunmamaktadir.");
+        await _repository.DeleteAsync(id);
+    }
+
+    public async Task UpdateCategoryAsync(Guid id, UpdateCategoryDto updateCategory)
+    {
+        var currentCategory = await _repository.GetByIdAsync(id);
+        if (currentCategory == null) throw new Exception("Aradiginiz kategori bulunmamaktadir.");
+        currentCategory.ToUpdateCategory(updateCategory);
+
+        await _repository.UpdateAsync(currentCategory);
     }
 }
