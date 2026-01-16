@@ -23,6 +23,7 @@ Proje, bağımlılıkların dışarıdan içeriye doğru aktığı **Clean Archi
 | **Generic Repository** | Veri erişim katmanında (DAL) kod tekrarını önleyen tasarım deseni. |
 | **AutoMapper** | Entity ve DTO nesneleri arasında otomatik dönüşüm. |
 | **Global Exception Handling** | Merkezi hata yönetimi middleware'i. |
+| **JWT (JSON Web Token)** | Güvenli kimlik doğrulama ve yetkilendirme (Authentication & Authorization). |
 
 ## 📂 Proje Yapısı
 
