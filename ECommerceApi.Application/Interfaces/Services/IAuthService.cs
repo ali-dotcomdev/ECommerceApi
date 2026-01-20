@@ -8,6 +8,7 @@ namespace ECommerceApi.Application.Interfaces.Services;
 
 public interface IAuthService
 {
+    public RefreshToken GenerateSecureRandomToken();
     Task<User> RegisterAsync(UserRegisterDto registerDto);
-    Task<string> LoginAsync(UserLoginDto loginDto);
+    Task<AuthResponseDto> LoginAsync(UserLoginDto loginDto);
 }

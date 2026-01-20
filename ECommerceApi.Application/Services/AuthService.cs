@@ -12,6 +12,7 @@ using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace ECommerceApi.Application.Services;
@@ -22,13 +23,32 @@ public class AuthService : IAuthService
     public readonly IPasswordHasher<User> _passwordHasher;
     private readonly IConfiguration _configuration;
     private readonly ILogger<AuthService> _logger;
+    private readonly IRefreshTokenRepository _refreshTokenRepository;
 
-    public AuthService(IGenericRepository<User> userRepository, IConfiguration configuration, ILogger<AuthService> logger)
+    public AuthService(IGenericRepository<User> userRepository, IConfiguration configuration, ILogger<AuthService> logger, IRefreshTokenRepository refreshTokenRepository)
     {
         _userRepository = userRepository;
         _passwordHasher = new PasswordHasher<User>();
         _configuration = configuration;
         _logger = logger;
+        _refreshTokenRepository = refreshTokenRepository;
+    }
+
+    public RefreshToken GenerateSecureRandomToken()
+    {
+        Span<byte> secureBuffer = stackalloc byte[64];
+        RandomNumberGenerator.Fill(secureBuffer);
+        var buffer = Convert.ToBase64String(secureBuffer);
+
+        var token = new RefreshToken
+        {
+            Token = buffer,
+            Expires = DateTime.UtcNow.AddDays(1),
+            Created = DateTime.UtcNow,
+
+            CreatedByIp = "127.0.0.1"
+        };
+        return token;
     }
 
     public async Task<User> RegisterAsync(UserRegisterDto registerDto)
@@ -50,7 +70,7 @@ public class AuthService : IAuthService
         return newUser;
     }
 
-    public async Task<string> LoginAsync(UserLoginDto loginDto)
+    public async Task<AuthResponseDto> LoginAsync(UserLoginDto loginDto)
     {
         _logger.LogInformation("Giris denemesi yapiliyor: {Email}", loginDto.Email);
         var users = await _userRepository.GetAllAsync();
@@ -88,6 +108,18 @@ public class AuthService : IAuthService
         var token = tokenHandler.CreateToken(tokenDescription);
 
         _logger.LogInformation("Giris basarili. Token uretildi: {Email}", loginDto.Email);
-        return tokenHandler.WriteToken(token);
+        string accessTokenString = tokenHandler.WriteToken(token);
+
+        var refreshTokenEntity = GenerateSecureRandomToken();
+        refreshTokenEntity.UserId = user.Id;
+
+        await _refreshTokenRepository.AddAsync(refreshTokenEntity);
+
+        return new AuthResponseDto
+        {
+            AccessToken = accessTokenString,
+            RefreshToken = refreshTokenEntity.Token,
+            RefreshTokenExpiration = refreshTokenEntity.Expires
+        };
     }
 }
