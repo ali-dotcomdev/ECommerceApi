@@ -34,6 +34,28 @@ public class AuthService : IAuthService
         _refreshTokenRepository = refreshTokenRepository;
     }
 
+    private string GenerateJwt(User user)
+    {
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var key = Encoding.ASCII.GetBytes(_configuration["JwtSettings:SecretKey"]);
+
+        var tokenDescription = new SecurityTokenDescriptor
+        {
+            Subject = new ClaimsIdentity(new[] // payload
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(ClaimTypes.Name, user.Username),
+                new Claim(ClaimTypes.Role, user.Role)
+            }),
+            Expires = DateTime.UtcNow.AddHours(1),
+            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature),
+            Issuer = _configuration["JwtSettings:Issuer"], //api
+            Audience = _configuration["JwtSettings:Audience"]
+        };
+        var token = tokenHandler.CreateToken(tokenDescription);
+        return tokenHandler.WriteToken(token);
+    }
+
     public RefreshToken GenerateSecureRandomToken()
     {
         Span<byte> secureBuffer = stackalloc byte[64];
@@ -89,27 +111,6 @@ public class AuthService : IAuthService
             throw new Exception("Kullanici bulunamadi veya sifre hatali.");
         }
 
-        var tokenHandler = new JwtSecurityTokenHandler();
-        var key = Encoding.ASCII.GetBytes(_configuration["JwtSettings:SecretKey"]);
-
-        var tokenDescription = new SecurityTokenDescriptor
-        {
-            Subject = new ClaimsIdentity(new[] // payload
-            {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Name, user.Username),
-                new Claim(ClaimTypes.Role, user.Role)
-            }),
-            Expires = DateTime.UtcNow.AddHours(1),
-            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature),
-            Issuer = _configuration["JwtSettings:Issuer"], //api
-            Audience = _configuration["JwtSettings:Audience"]
-        };
-        var token = tokenHandler.CreateToken(tokenDescription);
-
-        _logger.LogInformation("Giris basarili. Token uretildi: {Email}", loginDto.Email);
-        string accessTokenString = tokenHandler.WriteToken(token);
-
         var refreshTokenEntity = GenerateSecureRandomToken();
         refreshTokenEntity.UserId = user.Id;
 
@@ -117,9 +118,77 @@ public class AuthService : IAuthService
 
         return new AuthResponseDto
         {
-            AccessToken = accessTokenString,
+            AccessToken = GenerateJwt(user),
             RefreshToken = refreshTokenEntity.Token,
             RefreshTokenExpiration = refreshTokenEntity.Expires
+        };
+    }
+
+    public ClaimsPrincipal GetPrincipalFromExpiredToken(string? token)
+    {
+        var validationParameters = new TokenValidationParameters
+        {
+            ValidateAudience = false,
+            ValidateIssuer = false,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.ASCII.GetBytes(_configuration["JwtSettings:SecretKey"])  
+            ),
+            ValidateLifetime = false
+        };
+
+        var tokenHandler = new JwtSecurityTokenHandler();
+
+        var principal = tokenHandler.ValidateToken(
+            token,
+            validationParameters,
+            out SecurityToken securityToken
+        );
+
+        if (securityToken is not JwtSecurityToken jwtToken || 
+            !jwtToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, 
+            StringComparison.InvariantCultureIgnoreCase))
+        {
+            throw new SecurityTokenException("Invalid Token");
+        }
+
+        return principal;
+    }
+
+    public async Task<AuthResponseDto> RefreshTokenLoginAsync(RefreshTokenRequestDto request)
+    {
+        var principal = GetPrincipalFromExpiredToken(request.AccessToken);
+        if (principal == null) throw new Exception("Invalid access token or refresh token");
+
+        var userIdString = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(userIdString, out Guid userId)) throw new Exception("Invalid user id in token");
+
+        var storedRefreshToken = await _refreshTokenRepository.GetByTokenAsync(request.RefreshToken);
+
+        if (storedRefreshToken == null) throw new Exception("Invalid refresh token");
+
+        if (storedRefreshToken.Expires < DateTime.UtcNow) throw new Exception("Refresh Token expired. Please login again.");
+        if (storedRefreshToken.Revoked != null) throw new Exception("This token has been revoked.");
+        if (storedRefreshToken.UserId != userId) throw new Exception("Invalid token owner");
+
+        storedRefreshToken.Revoked = DateTime.UtcNow;
+
+        await _refreshTokenRepository.UpdateAsync(storedRefreshToken);
+
+        var user = await _userRepository.GetByIdAsync(userId);
+
+        var newAccessToken = GenerateJwt(user);
+
+        var newRefreshTokenEntity = GenerateSecureRandomToken();
+        newRefreshTokenEntity.UserId = user.Id;
+
+        await _refreshTokenRepository.AddAsync(newRefreshTokenEntity);
+
+        return new AuthResponseDto
+        {
+            AccessToken = newAccessToken,
+            RefreshToken = newRefreshTokenEntity.Token,
+            RefreshTokenExpiration = newRefreshTokenEntity.Expires
         };
     }
 }
