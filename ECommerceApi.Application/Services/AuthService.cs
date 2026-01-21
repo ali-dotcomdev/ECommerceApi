@@ -101,14 +101,14 @@ public class AuthService : IAuthService
         if (user == null)
         {
             _logger.LogWarning("Giris basarisiz kullanici bulunamadi: {Email}", loginDto.Email);
-            throw new Exception("Kullanici veya sifre hatali: ");
+            throw new KeyNotFoundException("kullanici bulunamadi");
         }
 
         var result = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, loginDto.Password);
         if (result == PasswordVerificationResult.Failed)
         {
             _logger.LogWarning("Giris basarisiz sifre hatali: {Email}", loginDto.Email);
-            throw new Exception("Kullanici bulunamadi veya sifre hatali.");
+            throw new ArgumentException("sifre hatali");
         }
 
         var refreshTokenEntity = GenerateSecureRandomToken();
@@ -158,18 +158,18 @@ public class AuthService : IAuthService
     public async Task<AuthResponseDto> RefreshTokenLoginAsync(RefreshTokenRequestDto request)
     {
         var principal = GetPrincipalFromExpiredToken(request.AccessToken);
-        if (principal == null) throw new Exception("Invalid access token or refresh token");
+        if (principal == null) throw new SecurityTokenException("Invalid access token or refresh token");
 
         var userIdString = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (!Guid.TryParse(userIdString, out Guid userId)) throw new Exception("Invalid user id in token");
+        if (!Guid.TryParse(userIdString, out Guid userId)) throw new SecurityTokenException("Invalid user id in token");
 
         var storedRefreshToken = await _refreshTokenRepository.GetByTokenAsync(request.RefreshToken);
 
         if (storedRefreshToken == null) throw new Exception("Invalid refresh token");
 
-        if (storedRefreshToken.Expires < DateTime.UtcNow) throw new Exception("Refresh Token expired. Please login again.");
-        if (storedRefreshToken.Revoked != null) throw new Exception("This token has been revoked.");
-        if (storedRefreshToken.UserId != userId) throw new Exception("Invalid token owner");
+        if (storedRefreshToken.Expires < DateTime.UtcNow) throw new SecurityTokenException("Refresh Token expired. Please login again.");
+        if (storedRefreshToken.Revoked != null) throw new SecurityTokenException("This token has been revoked.");
+        if (storedRefreshToken.UserId != userId) throw new SecurityTokenException("Invalid token owner");
 
         storedRefreshToken.Revoked = DateTime.UtcNow;
 
