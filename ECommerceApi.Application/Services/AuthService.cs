@@ -2,10 +2,12 @@
 using ECommerceApi.Application.Interfaces.Repositories;
 using ECommerceApi.Application.Interfaces.Services;
 using ECommerceApi.Application.Mappings;
+using ECommerceApi.Application.Settings;
 using ECommerceApi.Domain.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using System;
@@ -19,25 +21,25 @@ namespace ECommerceApi.Application.Services;
 
 public class AuthService : IAuthService
 {
-    public readonly IGenericRepository<User> _userRepository;
-    public readonly IPasswordHasher<User> _passwordHasher;
-    private readonly IConfiguration _configuration;
+    private readonly IGenericRepository<User> _userRepository;
+    private readonly IPasswordHasher<User> _passwordHasher;
     private readonly ILogger<AuthService> _logger;
     private readonly IRefreshTokenRepository _refreshTokenRepository;
+    private readonly JwtSettings _jwtSettings;
 
-    public AuthService(IGenericRepository<User> userRepository, IConfiguration configuration, ILogger<AuthService> logger, IRefreshTokenRepository refreshTokenRepository)
+    public AuthService(IGenericRepository<User> userRepository, ILogger<AuthService> logger, IRefreshTokenRepository refreshTokenRepository, IOptions<JwtSettings> jwtSettings)
     {
         _userRepository = userRepository;
         _passwordHasher = new PasswordHasher<User>();
-        _configuration = configuration;
         _logger = logger;
         _refreshTokenRepository = refreshTokenRepository;
+        _jwtSettings = jwtSettings.Value;
     }
 
     private string GenerateJwt(User user)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
-        var key = Encoding.ASCII.GetBytes(_configuration["JwtSettings:SecretKey"]);
+        var key = Encoding.ASCII.GetBytes(_jwtSettings.SecretKey);
 
         var tokenDescription = new SecurityTokenDescriptor
         {
@@ -47,10 +49,10 @@ public class AuthService : IAuthService
                 new Claim(ClaimTypes.Name, user.Username),
                 new Claim(ClaimTypes.Role, user.Role)
             }),
-            Expires = DateTime.UtcNow.AddHours(1),
+            Expires = DateTime.UtcNow.AddDays(_jwtSettings.AccessTokenExpirationMinutes),
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature),
-            Issuer = _configuration["JwtSettings:Issuer"], //api
-            Audience = _configuration["JwtSettings:Audience"]
+            Issuer = _jwtSettings.Issuer, //api
+            Audience = _jwtSettings.Audience
         };
         var token = tokenHandler.CreateToken(tokenDescription);
         return tokenHandler.WriteToken(token);
@@ -65,7 +67,7 @@ public class AuthService : IAuthService
         var token = new RefreshToken
         {
             Token = buffer,
-            Expires = DateTime.UtcNow.AddDays(1),
+            Expires = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpirationMinutes),
             Created = DateTime.UtcNow,
 
             CreatedByIp = "127.0.0.1"
@@ -132,7 +134,7 @@ public class AuthService : IAuthService
             ValidateIssuer = false,
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.ASCII.GetBytes(_configuration["JwtSettings:SecretKey"])  
+                Encoding.ASCII.GetBytes(_jwtSettings.SecretKey)  
             ),
             ValidateLifetime = false
         };

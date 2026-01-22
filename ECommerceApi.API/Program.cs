@@ -1,6 +1,7 @@
 ﻿using ECommerceApi.Application.Interfaces.Repositories;
 using ECommerceApi.Application.Interfaces.Services;
 using ECommerceApi.Application.Services;
+using ECommerceApi.Application.Settings;
 using ECommerceApi.Infrastructure.Data;
 using ECommerceApi.Infrastructure.Repositories;
 using FluentValidation;
@@ -36,15 +37,19 @@ builder.Services.AddValidatorsFromAssemblyContaining<ECommerceApi.Application.Se
 
 builder.Services.AddOpenApi();
 
-var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var secretKey = Encoding.UTF8.GetBytes(jwtSettings["SecretKey"]);
+var jwtSection = builder.Configuration.GetSection("JwtSettings");
+builder.Services.Configure<JwtSettings>(jwtSection);
+
+var jwtSettings = jwtSection.Get<JwtSettings>();
+
+var secretKey = Encoding.ASCII.GetBytes(jwtSettings.SecretKey);
 
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 })
-.AddJwtBearer(options =>
+.AddJwtBearer(options => // token sahte mi degil mi kontrol
 {
     options.TokenValidationParameters = new TokenValidationParameters
     {
@@ -52,8 +57,8 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtSettings["Issuer"],
-        ValidAudience = jwtSettings["Audience"],
+        ValidIssuer = jwtSettings.Issuer,
+        ValidAudience = jwtSettings.Audience,
         IssuerSigningKey = new SymmetricSecurityKey(secretKey)
     };
 });
