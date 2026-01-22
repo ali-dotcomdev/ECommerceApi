@@ -51,7 +51,7 @@ ECommerceApi (Solution)
     ├── 📂 Data                      # DbContext Yapılandırması
     ├── 📂 Migrations                # Veritabanı Versiyonları
     └── 📂 Repositories              # Generic & Özel Repository Implementasyonları
-
+```
  Öne Çıkan Özellikler
 1. Token Rotation & Revocation (Güvenlik)
 Standart JWT yapılarındaki güvenlik açıklarını kapatmak için Refresh Token Rotation stratejisi uygulanmıştır:
