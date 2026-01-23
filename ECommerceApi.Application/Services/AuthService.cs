@@ -21,19 +21,19 @@ namespace ECommerceApi.Application.Services;
 
 public class AuthService : IAuthService
 {
-    private readonly IGenericRepository<User> _userRepository;
     private readonly IPasswordHasher<User> _passwordHasher;
     private readonly ILogger<AuthService> _logger;
     private readonly IRefreshTokenRepository _refreshTokenRepository;
     private readonly JwtSettings _jwtSettings;
+    private readonly IUserRepository _userRepository;
 
-    public AuthService(IGenericRepository<User> userRepository, ILogger<AuthService> logger, IRefreshTokenRepository refreshTokenRepository, IOptions<JwtSettings> jwtSettings)
+    public AuthService(ILogger<AuthService> logger, IRefreshTokenRepository refreshTokenRepository, IOptions<JwtSettings> jwtSettings, IUserRepository userRepository)
     {
-        _userRepository = userRepository;
         _passwordHasher = new PasswordHasher<User>();
         _logger = logger;
         _refreshTokenRepository = refreshTokenRepository;
         _jwtSettings = jwtSettings.Value;
+        _userRepository = userRepository;
     }
 
     private string GenerateJwt(User user)
@@ -97,8 +97,7 @@ public class AuthService : IAuthService
     public async Task<AuthResponseDto> LoginAsync(UserLoginDto loginDto)
     {
         _logger.LogInformation("Giris denemesi yapiliyor: {Email}", loginDto.Email);
-        var users = await _userRepository.GetAllAsync();
-        var user = users.FirstOrDefault(u => u.Email == loginDto.Email);
+        var user = await _userRepository.GetByEmailAsync(loginDto.Email);
 
         if (user == null)
         {
