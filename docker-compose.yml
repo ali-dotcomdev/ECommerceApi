@@ -11,8 +11,10 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__PostgreConnection=Host=ecommerce-db;Port=5432;Database=ECommerceDb;Username=postgres;Password=mysecretpassword;
+      - ConnectionStrings__Redis=e-commerce-redis:6379;
     depends_on:
       - ecommerce-db
+      - ecommerce-redis
 
   ecommerce-db:
     image: postgres:16-alpine
@@ -24,6 +26,12 @@ services:
       - "5435:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+
+  ecommerce-redis:
+    image: redis:alpine
+    container_name: ecommerce_redis
+    ports:
+      - "6379:6379"
 
 volumes:
   postgres_data:

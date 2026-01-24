@@ -79,8 +79,8 @@ public class AuthService : IAuthService
     {
         _logger.LogInformation("Yeni kayit istegi {Email}", registerDto.Email);
 
-        var users = await _userRepository.GetByEmailAsync(registerDto.Email);
-        if (users.Email != null)
+        var user = await _userRepository.GetByEmailAsync(registerDto.Email);
+        if (user != null)
         {
             throw new Exception("Bu Email kullanimda");
         }

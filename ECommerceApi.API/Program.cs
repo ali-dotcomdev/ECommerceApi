@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
+using System.Net.WebSockets;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -64,11 +65,24 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration.GetConnectionString("Redis");
+    options.InstanceName = "ECommerce_";
+});
+
 var app = builder.Build();
 
 app.UseSerilogRequestLogging();
 app.UseMiddleware<ECommerceApi.API.Middlewares.GlobalExceptionMiddleware>();
 app.UseMiddleware<ECommerceApi.API.Middlewares.PerformanceMiddleware>();
+
+//automatic migration on startup
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<ECommerceApi.Infrastructure.Data.AppDbContext>();
+    dbContext.Database.Migrate();
+}
 
 if (app.Environment.IsDevelopment())
 {
