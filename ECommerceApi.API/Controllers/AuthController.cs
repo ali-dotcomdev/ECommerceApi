@@ -1,5 +1,6 @@
 ﻿using ECommerceApi.Application.DTOs;
 using ECommerceApi.Application.Interfaces.Services;
+using ECommerceApi.Application.Wrapper;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ECommerceApi.API.Controllers;
@@ -20,20 +21,20 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Register([FromBody] UserRegisterDto registerDto)
     {
         var user = await _authService.RegisterAsync(registerDto);
-        return Ok("Basarili bir sekilde kayit yapildi");
+        return Ok(Result<Guid>.Success(user.Id, "basariyla kayit olundu"));
     }
 
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] UserLoginDto loginDto)
     {
         var token = await _authService.LoginAsync(loginDto);
-        return Ok(token);
+        return Ok(Result<AuthResponseDto>.Success(token, "giris basarili"));
     }
 
     [HttpPost("refresh-token")]
     public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequestDto request)
     {
         var authResponse = await _authService.RefreshTokenLoginAsync(request);
-        return Ok(authResponse);
+        return Ok(Result<AuthResponseDto>.Success(authResponse, "token basarili bir sekilde yenilendi"));
     }
 }

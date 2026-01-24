@@ -78,12 +78,13 @@ public class AuthService : IAuthService
     public async Task<User> RegisterAsync(UserRegisterDto registerDto)
     {
         _logger.LogInformation("Yeni kayit istegi {Email}", registerDto.Email);
-        var users = await _userRepository.GetAllAsync();
-        if (users.Any(u => u.Email == registerDto.Email))
+
+        var users = await _userRepository.GetByEmailAsync(registerDto.Email);
+        if (users.Email != null)
         {
-            _logger.LogWarning("kayit basarisiz, email kullaniliyor {Email}", registerDto.Email);
             throw new Exception("Bu Email kullanimda");
         }
+
         var newUser = registerDto.ToUserEntity();
 
         newUser.PasswordHash = _passwordHasher.HashPassword(newUser, registerDto.Password);
