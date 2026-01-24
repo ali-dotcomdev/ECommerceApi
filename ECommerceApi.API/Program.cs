@@ -68,6 +68,7 @@ var app = builder.Build();
 
 app.UseSerilogRequestLogging();
 app.UseMiddleware<ECommerceApi.API.Middlewares.GlobalExceptionMiddleware>();
+app.UseMiddleware<ECommerceApi.API.Middlewares.PerformanceMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
