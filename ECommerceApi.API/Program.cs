@@ -4,6 +4,7 @@ using ECommerceApi.Application.Services;
 using ECommerceApi.Application.Settings;
 using ECommerceApi.Infrastructure.Data;
 using ECommerceApi.Infrastructure.Repositories;
+using ECommerceApi.Infrastructure.Services;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -65,11 +66,14 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+var redisConnection = builder.Configuration.GetConnectionString("Redis");
+
 builder.Services.AddStackExchangeRedisCache(options =>
 {
-    options.Configuration = builder.Configuration.GetConnectionString("Redis");
+    options.Configuration = redisConnection;
     options.InstanceName = "ECommerce_";
 });
+builder.Services.AddScoped(typeof(ICacheService), typeof(RedisCacheService));
 
 var app = builder.Build();
 
@@ -89,7 +93,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
