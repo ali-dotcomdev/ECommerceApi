@@ -5,7 +5,7 @@ using System.Text;
 using Microsoft.Extensions.Caching.Distributed;
 using System.Text.Json;
 
-namespace ECommerceApi.Application.Services;
+namespace ECommerceApi.Infrastructure.Services;
 
 public class RedisCacheService : ICacheService
 {

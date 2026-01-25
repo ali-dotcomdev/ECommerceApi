@@ -2,6 +2,7 @@
 using ECommerceApi.Application.Interfaces.Services;
 using ECommerceApi.Domain.Entities;
 using ECommerceApi.Infrastructure.Data;
+using ECommerceApi.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
