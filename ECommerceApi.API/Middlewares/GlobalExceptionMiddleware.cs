@@ -1,7 +1,8 @@
-﻿using System.Net;
-using System.Text.Json;
-using ECommerceApi.Application.Wrapper;
+﻿using ECommerceApi.Application.Wrapper;
 using FluentValidation;
+using Microsoft.EntityFrameworkCore;
+using System.Net;
+using System.Text.Json;
 
 namespace ECommerceApi.API.Middlewares;
 
@@ -76,7 +77,16 @@ public class GlobalExceptionMiddleware
                 responseModel.Message = ex.Message;
                 responseModel.Errors = new List<string> { ex.Message };
                 break;
-
+            case InvalidOperationException ex:
+                context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+                responseModel.Message = ex.Message;
+                responseModel.Errors = new List<string> { ex.Message };
+                break;
+            case DbUpdateException ex:
+                context.Response.StatusCode = (int)HttpStatusCode.Conflict;
+                responseModel.Message = ex.Message;
+                responseModel.Errors = new List<string> { ex.Message };
+                break;
             default:
                 _logger.LogError(exception, "bilinmeyen hata:{Message}", exception.Message);
                 responseModel.Message = "beklenmeye bir hata olustu";

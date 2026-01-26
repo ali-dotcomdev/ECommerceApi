@@ -82,7 +82,7 @@ public class AuthService : IAuthService
         var user = await _userRepository.GetByEmailAsync(registerDto.Email);
         if (user != null)
         {
-            throw new Exception("Bu Email kullanimda");
+            throw new InvalidOperationException("Bu Email kullanimda");
         }
 
         var newUser = registerDto.ToUserEntity();
